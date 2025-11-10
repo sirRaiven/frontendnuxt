@@ -17,7 +17,8 @@
         v-model="selectedCategory"
         clearable
         label="Select Category"
-        :items="categoryOptions"
+        :items="category.data"
+        item-title="category_name"
         class="mx-4"
         variant="outlined"
       ></v-select>
@@ -50,13 +51,13 @@ const { data: inventory, error: invError } = await useFetch(
 //   value: data.id,
 // }));
 
-const categoryOptions = computed(() => {
-  const cats = category.value?.data || [];
-  return cats.map((cat) => ({
-    title: cat.category_name,
-    value: cat.id,
-  }));
-});
+// const categoryOptions = computed(() => {
+//   // const cats = category.value?.data || [];
+//   return category.value.data.map((cat) => ({
+//     title: cat.category_name,
+//     value: cat.id,
+//   }));
+// });
 
 // console.log(categoryOptions.value);
 
