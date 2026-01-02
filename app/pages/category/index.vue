@@ -1,7 +1,9 @@
 <template>
   <v-container fluid>
     <v-card title="Category" flat elevation="2">
-      <template v-slot:text>
+
+      <!-- Search -->
+      <template #text>
         <v-text-field
           v-model="search"
           label="Search"
@@ -9,107 +11,138 @@
           variant="outlined"
           hide-details
           single-line
-        ></v-text-field>
+        />
       </template>
 
-      <v-btn @click="createDialog = true" color="primary" class="ma-4">
+      <!-- Create Button -->
+      <v-btn color="primary" class="ma-4" @click="createDialog = true">
         Create Category
       </v-btn>
 
-<v-data-table
-:headers="headers"
-:items="categories"
-:search="search"
->
-<template #item.actions="{ item }">
-  <v-menu location="start top">
-    <template #activator="{ props }">
-      <v-btn
-        icon="mdi-dots-vertical"
-        variant="text"
-        v-bind="props"
-      />
-    </template>
-
-    <v-list>
-      <v-list-item
-        title="Edit"
-        @click="editCategory(item)"
-      />
-      <v-list-item
-        title="Delete"
-        @click="deleteCategory(item)"
-      />
-    </v-list>
-  </v-menu>
-</template>
-</v-data-table>
-
-<v-dialog
-      v-model="createDialog"
-      width="auto"
-    >
-      <v-card
-        max-width="500"
-        prepend-icon="mdi-pencil"
-        title="Add Category"
+      <!-- Data Table -->
+      <v-data-table
+        :headers="headers"
+        :items="categories"
+        :search="search"
       >
+        <template #item.actions="{ item }">
+          <v-menu location="start top">
+            <template #activator="{ props }">
+              <v-btn
+                icon="mdi-dots-vertical"
+                variant="text"
+                v-bind="props"
+              />
+            </template>
 
+            <v-list>
+              <v-list-item
+                title="Edit"
+                @click="openEditDialog(item)"
+              />
+              <v-list-item
+                title="Delete"
+                @click="deleteCategory(item)"
+              />
+            </v-list>
+          </v-menu>
+        </template>
+      </v-data-table>
+
+    </v-card>
+
+    <!-- CREATE CATEGORY DIALOG -->
+    <v-dialog v-model="createDialog" width="500">
+      <v-card prepend-icon="mdi-plus" title="Add Category">
         <v-card-text>
           <v-form>
             <v-text-field
-            v-model="CategoryName"
+              v-model="CategoryName"
               label="Category Name*"
               required
-            ></v-text-field>
-
+            />
             <v-textarea
               v-model="CategoryDescription"
               label="Description*"
               required
-            ></v-textarea>
+            />
           </v-form>
         </v-card-text>
 
-        <template v-slot:actions>
-          <v-btn
-            class="ms-auto"
-            text="Create"
-            @click="createCategory()"
-          ></v-btn>
-        </template>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn color="primary" @click="createCategory">Create</v-btn>
+          <v-btn variant="flat" color="red" @click="createDialog = false">Cancel</v-btn>
+        </v-card-actions>
       </v-card>
     </v-dialog>
-    </v-card>
 
+    <!-- EDIT CATEGORY DIALOG -->
+    <v-dialog v-model="editDialog" width="500">
+      <v-card prepend-icon="mdi-pencil" title="Edit Category">
+        <v-card-text>
+          <v-form>
+            <v-text-field
+              v-model="editedCategory.category_name"
+              label="Category Name*"
+              required
+            />
+            <v-textarea
+              v-model="editedCategory.description"
+              label="Description*"
+              required
+            />
+          </v-form>
+        </v-card-text>
+
+        <v-card-actions>
+          <v-spacer />
+          <v-btn color="primary" @click="updateCategory">Save</v-btn>
+          <v-btn variant="flat" color="red"  @click="editDialog = false">Cancel</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Snackbar -->
     <v-snackbar v-model="snackbar" :color="snackbarColor">
-      {{ snackbarText }}</v-snackbar
-    >
+      {{ snackbarText }}
+    </v-snackbar>
 
   </v-container>
 </template>
 
 <script setup>
-// const { data: category, error } = await useFetch(
-//   "http://localhost:1337/api/categories"
-// );
-const categories = ref([]);
-// console.log(category.data);
-const search = ref("");
-const createDialog = ref(false);
+import { ref, onMounted } from "vue";
 
-const CategoryName = ref();
-const CategoryDescription = ref();
+/* ------------------ STATE ------------------ */
+const categories = ref([]);
+const search = ref("");
+
+const createDialog = ref(false);
+const editDialog = ref(false);
+
+const CategoryName = ref("");
+const CategoryDescription = ref("");
+
+const editedCategory = ref({
+  documentId: null,
+  category_name: "",
+  description: "",
+});
+
 const snackbar = ref(false);
 const snackbarColor = ref("");
-const snackbarText = ref();
+const snackbarText = ref("");
 
+/* ------------------ TABLE HEADERS ------------------ */
 const headers = [
   { key: "category_name", title: "Category Name" },
   { key: "description", title: "Description" },
   { key: "createdAt", title: "Created At" },
-  { title: "", key: "actions" },
+  { key: "actions", title: "", sortable: false },
 ];
+
+/* ------------------ FETCH ------------------ */
 const getCategories = async () => {
   try {
     const res = await $fetch("http://localhost:1337/api/categories");
@@ -119,67 +152,93 @@ const getCategories = async () => {
   }
 };
 
-
+/* ------------------ CREATE ------------------ */
 const createCategory = async () => {
-  // alert("Create", item);
-
   try {
-    let payload = {
-      category_name: CategoryName.value,
-      description: CategoryDescription.value,
-    };
-    const res = await useFetch("http://localhost:1337/api/categories", {
+    await $fetch("http://localhost:1337/api/categories", {
       method: "POST",
       body: {
-        data: payload,
+        data: {
+          category_name: CategoryName.value,
+          description: CategoryDescription.value,
+        },
       },
     });
-    if (res) {
-      createDialog.value = false;
-      // console.log("Successfully Created", categoryName.value);
-      snackbarColor.value = "green";
-      snackbarText.value = "Successfully Created!";
-      snackbar.value = true;
-      getCategories();
-    } else {
-      alert("Error creating category");
-    }
 
-  } catch (error) {
-    console.log(error);
-  }
-  
-};
+    createDialog.value = false;
+    CategoryName.value = "";
+    CategoryDescription.value = "";
 
-const editCategory = (item) => {
-  // alert("Edit", item);
-  
-};
-
-const deleteCategory = async (item) => {
-  // alert("Delete", item);
-  try {
-    const res = await useFetch(
-      `http://localhost:1337/api/categories/${item.documentId}`,
-      {
-        method: "DELETE",
-      }
-    );
-
-    console.log("Successfully Deleted!");
     snackbarColor.value = "green";
-    snackbarText.value = "Successfully Deleted!";
+    snackbarText.value = "Category created successfully!";
     snackbar.value = true;
+
     getCategories();
   } catch (err) {
     console.log(err);
   }
 };
 
+/* ------------------ EDIT ------------------ */
+const openEditDialog = (item) => {
+  editedCategory.value = {
+    documentId: item.documentId,
+    category_name: item.category_name,
+    description: item.description,
+  };
+  editDialog.value = true;
+};
+
+const updateCategory = async () => {
+  try {
+    await $fetch(
+      `http://localhost:1337/api/categories/${editedCategory.value.documentId}`,
+      {
+        method: "PUT",
+        body: {
+          data: {
+            category_name: editedCategory.value.category_name,
+            description: editedCategory.value.description,
+          },
+        },
+      }
+    );
+
+    editDialog.value = false;
+
+    snackbarColor.value = "green";
+    snackbarText.value = "Category updated successfully!";
+    snackbar.value = true;
+
+    getCategories();
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+/* ------------------ DELETE ------------------ */
+const deleteCategory = async (item) => {
+  try {
+    await $fetch(
+      `http://localhost:1337/api/categories/${item.documentId}`,
+      { method: "DELETE" }
+    );
+
+    snackbarColor.value = "green";
+    snackbarText.value = "Category deleted successfully!";
+    snackbar.value = true;
+
+    getCategories();
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+/* ------------------ INIT ------------------ */
 onMounted(() => {
   getCategories();
 });
-
 </script>
 
-<style></style>
+<style scoped>
+</style>
