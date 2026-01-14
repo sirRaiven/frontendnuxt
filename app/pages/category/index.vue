@@ -25,8 +25,8 @@
         :items="categories"
         :search="search"
       >
-        <-- Alternative UI design for Edit and Delete option -->
-          <-- <template v-slot:item.actions="{ item }">
+        <!-- Alternative UI design for Edit and Delete option -->
+          <!-- <template v-slot:item.actions="{ item }">
       <v-btn
         variant="text"
         icon
@@ -39,7 +39,7 @@
         <v-icon>mdi-delete</v-icon>
       </v-btn>
     </template> -->
-        <-- Actual better UI Design for Edit and Delete option-->
+        <!-- Actual better UI Design for Edit and Delete option-->
         <template #item.actions="{ item }">
           <v-menu location="start top">
             <template #activator="{ props }">
